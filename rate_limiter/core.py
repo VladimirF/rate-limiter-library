@@ -51,9 +51,7 @@ class RateLimiter:
 
         # Initialize backends
         if backend is None:
-            self._primary_backend: Backend = RedisBackend(
-                config=redis_config, algorithm=algorithm
-            )
+            self._primary_backend: Backend = RedisBackend(config=redis_config, algorithm=algorithm)
         else:
             self._primary_backend = backend
 

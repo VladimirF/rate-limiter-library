@@ -293,6 +293,4 @@ class TestConfiguration:
 
         # Now with raise
         with pytest.raises(RateLimitExceeded):
-            await memory_limiter.check(
-                "override_test", rate=3, period=60, raise_on_exceeded=True
-            )
+            await memory_limiter.check("override_test", rate=3, period=60, raise_on_exceeded=True)

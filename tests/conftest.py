@@ -38,7 +38,9 @@ def redis_container():
     try:
         from testcontainers.redis import RedisContainer
     except ImportError:
-        pytest.skip("testcontainers not available - install with: pip install testcontainers[redis]")
+        pytest.skip(
+            "testcontainers not available - install with: pip install testcontainers[redis]"
+        )
         return
 
     # Start Redis container

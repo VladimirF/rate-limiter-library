@@ -1,4 +1,8 @@
-"""Tests for Redis backend."""
+"""Tests for Redis backend.
+
+These tests use testcontainers to spin up a real Redis instance in Docker.
+This ensures tests run against actual Redis, not mocks or in-memory alternatives.
+"""
 
 import asyncio
 
@@ -8,38 +12,34 @@ from rate_limiter.backends.redis import RedisBackend
 from rate_limiter.exceptions import BackendError
 from rate_limiter.types import BackendConfig, RateLimitConfig
 
-# Skip tests if Redis is not available
-pytest_mark = pytest.mark.asyncio
-
 
 @pytest.fixture
-async def redis_backend():
-    """Create Redis backend for testing."""
-    config = BackendConfig(host="localhost", port=6379, db=15)  # Use test DB
-    backend = RedisBackend(config=config)
-
-    # Check if Redis is available
-    try:
-        if not await backend.health_check():
-            pytest.skip("Redis not available")
-    except Exception:
-        pytest.skip("Redis not available")
+async def redis_backend(redis_container):
+    """Create Redis backend for testing with actual Redis container."""
+    config = BackendConfig(
+        host=redis_container["host"],
+        port=redis_container["port"],
+        db=0,
+        socket_timeout=5.0,
+        socket_connect_timeout=5.0,
+    )
+    backend = RedisBackend(config=config, algorithm="token_bucket")
 
     yield backend
     await backend.close()
 
 
 @pytest.fixture
-async def sliding_window_backend():
+async def sliding_window_backend(redis_container):
     """Create Redis backend with sliding window algorithm."""
-    config = BackendConfig(host="localhost", port=6379, db=15)
+    config = BackendConfig(
+        host=redis_container["host"],
+        port=redis_container["port"],
+        db=0,
+        socket_timeout=5.0,
+        socket_connect_timeout=5.0,
+    )
     backend = RedisBackend(config=config, algorithm="sliding_window")
-
-    try:
-        if not await backend.health_check():
-            pytest.skip("Redis not available")
-    except Exception:
-        pytest.skip("Redis not available")
 
     yield backend
     await backend.close()
@@ -152,14 +152,19 @@ class TestRedisBackendTokenBucket:
         result = await redis_backend.check_rate_limit(config)
         assert result.allowed is False
 
-    async def test_distributed_rate_limiting(self, redis_backend):
+    async def test_distributed_rate_limiting(self, redis_backend, redis_container):
         """Multiple backend instances should share rate limit state."""
         config = RateLimitConfig(rate=5, period=60.0, key="redis_distributed_test")
 
-        # Create two backend instances
+        # Create two backend instances pointing to same Redis
         backend1 = redis_backend
         backend2 = RedisBackend(
-            config=BackendConfig(host="localhost", port=6379, db=15),
+            config=BackendConfig(
+                host=redis_container["host"],
+                port=redis_container["port"],
+                db=0,
+                socket_timeout=5.0,
+            ),
             algorithm="token_bucket",
         )
 
@@ -261,32 +266,20 @@ class TestRedisBackendErrors:
 class TestRedisBackendConfiguration:
     """Test Redis backend configuration."""
 
-    async def test_custom_redis_client(self):
+    async def test_custom_redis_client(self, redis_client):
         """Should accept custom Redis client."""
-        import redis.asyncio as aioredis
+        backend = RedisBackend(redis_client=redis_client)
 
-        client = await aioredis.from_url(
-            "redis://localhost:6379/15", decode_responses=True, socket_timeout=1.0
-        )
+        # Should use provided client
+        config = RateLimitConfig(rate=10, period=60.0, key="custom_client_test")
+        result = await backend.check_rate_limit(config)
+        assert result is not None
 
-        try:
-            backend = RedisBackend(redis_client=client)
+        # Closing backend should not close external client
+        await backend.close()
 
-            # Should use provided client
-            config = RateLimitConfig(rate=10, period=60.0, key="custom_client_test")
-            result = await backend.check_rate_limit(config)
-            assert result is not None
-
-            # Closing backend should not close external client
-            await backend.close()
-
-            # Client should still work
-            await client.ping()
-
-        except Exception:
-            pytest.skip("Redis not available")
-        finally:
-            await client.aclose()
+        # Client should still work
+        await redis_client.ping()
 
     async def test_algorithm_validation(self):
         """Should validate algorithm parameter."""

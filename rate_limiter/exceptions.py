@@ -1,7 +1,6 @@
 """Exception classes for rate limiter."""
 
 
-
 class RateLimiterError(Exception):
     """Base exception for all rate limiter errors."""
 

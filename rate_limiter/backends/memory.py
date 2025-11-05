@@ -47,17 +47,27 @@ class InMemoryBackend(BaseBackend):
         current_time = time.time()
         bucket = self._buckets[config.key]
 
+        # Initialize bucket with full capacity on first access
+        is_first_access = config.key not in self._limits
+
         # Store limit configuration for this key
         self._limits[config.key] = (config.rate, config.period)
 
-        # Calculate tokens to add since last update
-        time_passed = current_time - bucket["last_update"]
+        # Calculate refill rate (tokens per second)
         refill_rate = config.rate / config.period
-        new_tokens = time_passed * refill_rate
 
-        # Update token count (capped at max capacity)
-        bucket["tokens"] = min(config.rate, bucket["tokens"] + new_tokens)
-        bucket["last_update"] = current_time
+        if is_first_access:
+            # First access: start with full capacity
+            bucket["tokens"] = float(config.rate)
+            bucket["last_update"] = current_time
+        else:
+            # Calculate tokens to add since last update
+            time_passed = current_time - bucket["last_update"]
+            new_tokens = time_passed * refill_rate
+
+            # Update token count (capped at max capacity)
+            bucket["tokens"] = min(config.rate, bucket["tokens"] + new_tokens)
+            bucket["last_update"] = current_time
 
         # Check if request can be allowed
         if bucket["tokens"] >= 1.0:

@@ -1,7 +1,7 @@
 """Redis backend for distributed rate limiting."""
 
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis
@@ -10,6 +10,11 @@ from redis.exceptions import RedisError
 from rate_limiter.backends.base import BaseBackend
 from rate_limiter.exceptions import BackendError
 from rate_limiter.types import BackendConfig, RateLimitConfig, RateLimitResult
+
+if TYPE_CHECKING:
+    from redis.asyncio.client import Redis as RedisType
+else:
+    RedisType = Redis
 
 
 # Lua script for token bucket algorithm
@@ -121,7 +126,7 @@ class RedisBackend(BaseBackend):
     def __init__(
         self,
         config: BackendConfig | None = None,
-        redis_client: Redis[Any] | None = None,
+        redis_client: "Redis | None" = None,
         algorithm: str = "token_bucket",
     ) -> None:
         """Initialize Redis backend.
@@ -144,7 +149,7 @@ class RedisBackend(BaseBackend):
         if algorithm not in ("token_bucket", "sliding_window"):
             raise ValueError(f"Unknown algorithm: {algorithm}")
 
-    async def _ensure_connected(self) -> Redis[Any]:
+    async def _ensure_connected(self) -> Redis:
         """Ensure Redis client is connected and scripts are loaded."""
         if self._client is None:
             self._client = await aioredis.from_url(

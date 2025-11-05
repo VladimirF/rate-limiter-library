@@ -34,7 +34,9 @@ class BenchmarkRunner:
         Returns:
             Dictionary with benchmark results
         """
-        config_template = RateLimitConfig(rate=1000000, period=60.0, key="")
+        # Use high rate limit for benchmarking throughput
+        rate = 1000000
+        period = 60.0
 
         # Generate pool of keys for more realistic testing
         keys = [f"bench_user_{i}" for i in range(key_pool_size)]
@@ -44,8 +46,8 @@ class BenchmarkRunner:
             for i in range(requests_per_task):
                 key_idx = (task_id * requests_per_task + i) % key_pool_size
                 config = RateLimitConfig(
-                    rate=config_template.rate,
-                    period=config_template.period,
+                    rate=rate,
+                    period=period,
                     key=keys[key_idx],
                 )
                 await backend.check_rate_limit(config)

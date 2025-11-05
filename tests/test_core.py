@@ -18,17 +18,15 @@ async def memory_limiter():
 
 
 @pytest.fixture
-async def redis_limiter():
-    """Create rate limiter with Redis backend."""
-    config = BackendConfig(host="localhost", port=6379, db=15)
+async def redis_limiter(redis_container):
+    """Create rate limiter with Redis backend using testcontainer."""
+    config = BackendConfig(
+        host=redis_container["host"],
+        port=redis_container["port"],
+        db=0,
+        socket_timeout=5.0,
+    )
     backend = RedisBackend(config=config)
-
-    # Check Redis availability
-    try:
-        if not await backend.health_check():
-            pytest.skip("Redis not available")
-    except Exception:
-        pytest.skip("Redis not available")
 
     limiter = RateLimiter(backend=backend, fallback_backend=InMemoryBackend())
     yield limiter
@@ -224,18 +222,17 @@ class TestRedisIntegration:
         health = await redis_limiter.health_check()
         assert health["primary"] is True
 
-    async def test_different_algorithms(self):
+    async def test_different_algorithms(self, redis_container):
         """Should work with different algorithms."""
-        config = BackendConfig(host="localhost", port=6379, db=15)
+        config = BackendConfig(
+            host=redis_container["host"],
+            port=redis_container["port"],
+            db=0,
+            socket_timeout=5.0,
+        )
 
         # Token bucket
         backend1 = RedisBackend(config=config, algorithm="token_bucket")
-        try:
-            if not await backend1.health_check():
-                pytest.skip("Redis not available")
-        except Exception:
-            pytest.skip("Redis not available")
-
         limiter1 = RateLimiter(backend=backend1, fallback_backend=None)
 
         # Sliding window

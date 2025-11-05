@@ -313,21 +313,50 @@ python benchmarks/benchmark_throughput.py
 
 ## Testing
 
-The library includes comprehensive tests:
+The library uses **industry-standard integration testing** with real Redis instances:
+
+### Automated Testing with Testcontainers
+
+The test suite uses [testcontainers-python](https://testcontainers-python.readthedocs.io/) to automatically spin up Redis Docker containers:
 
 ```bash
-# Install test dependencies
+# Install test dependencies (includes testcontainers)
 pip install -e ".[dev]"
 
-# Run tests
+# Run all tests (testcontainers auto-starts Redis in Docker)
 pytest
 
 # Run with coverage
 pytest --cov=rate_limiter --cov-report=html
 
-# Run specific test file
-pytest tests/test_redis_backend.py
+# Run specific test suites
+pytest tests/test_memory_backend.py     # Unit tests (no Redis needed)
+pytest tests/test_redis_backend.py      # Integration tests (uses Docker)
+pytest tests/test_core.py               # End-to-end tests
 ```
+
+**Requirements**: Docker must be installed and running
+
+### Alternative: Use Existing Redis
+
+If you have Redis running locally or in CI:
+
+```bash
+# Start Redis (local or docker-compose)
+docker-compose up -d redis
+
+# Run tests with existing Redis
+REDIS_HOST=localhost REDIS_PORT=6379 pytest
+```
+
+### Why Real Redis?
+
+- ✅ **No Mocks**: Tests run against actual Redis, catching real-world issues
+- ✅ **Lua Script Validation**: Ensures atomic operations work correctly
+- ✅ **Distributed Testing**: Verifies rate limit sharing across instances
+- ✅ **Production Parity**: Same environment as production
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 ## Development
 

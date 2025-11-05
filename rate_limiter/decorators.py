@@ -2,11 +2,11 @@
 
 import functools
 import inspect
-from typing import Any, Callable, TypeVar, cast
+from collections.abc import Callable
+from typing import Any, TypeVar, cast
 
 from rate_limiter.core import RateLimiter
 from rate_limiter.exceptions import RateLimitExceeded
-from rate_limiter.types import RateLimitConfig
 
 F = TypeVar("F", bound=Callable[..., Any])
 

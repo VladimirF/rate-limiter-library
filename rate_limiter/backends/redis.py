@@ -1,7 +1,7 @@
 """Redis backend for distributed rate limiting."""
 
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import redis.asyncio as aioredis
 from redis.asyncio import Redis

@@ -3,7 +3,6 @@
 import asyncio
 import time
 from collections import defaultdict
-from typing import DefaultDict
 
 from rate_limiter.backends.base import BaseBackend
 from rate_limiter.types import RateLimitConfig, RateLimitResult
@@ -21,10 +20,10 @@ class InMemoryBackend(BaseBackend):
 
     def __init__(self) -> None:
         """Initialize in-memory backend with tracking structures."""
-        self._buckets: DefaultDict[str, dict[str, float]] = defaultdict(
+        self._buckets: defaultdict[str, dict[str, float]] = defaultdict(
             lambda: {"tokens": 0.0, "last_update": time.time()}
         )
-        self._locks: DefaultDict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        self._locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         self._limits: dict[str, tuple[int, float]] = {}
 
     async def check_rate_limit(self, config: RateLimitConfig) -> RateLimitResult:

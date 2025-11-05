@@ -1,7 +1,7 @@
 """ASGI middleware for rate limiting web applications."""
 
 import logging
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from rate_limiter.core import RateLimiter
 from rate_limiter.exceptions import RateLimitExceeded
